@@ -1,0 +1,77 @@
+---
+title: "Property_Inspections"
+author: "Sean Preusse"
+date: "2 November 2015"
+output: html_document
+---
+
+## Property Inspections
+
+```{r}
+test <- read.csv("http://infoexcite.com/rdata/Kaggle/Property_Inspection/test.csv")
+sample <- read.csv("http://infoexcite.com/rdata/Kaggle/Property_Inspection/sample_submission.csv")
+train <- read.csv("http://infoexcite.com/rdata/Kaggle/Property_Inspection/train.csv")
+```
+
+```{r}
+summary(train)
+
+library(stargazer)
+stargazer(train, type = "text", digits=1)
+
+```
+
+
+```{r}
+require(randomForest)
+
+# load and clean up data
+ids <- test$Id
+y <- train$Hazard
+train$Hazard <- train$Id <- NULL
+test$Id <- NULL
+
+# get the categorical columns
+fact_cols = c('T1_V4', 'T1_V5', 'T1_V6', 'T1_V7', 'T1_V8', 'T1_V9', 'T1_V11', 
+'T1_V12', 'T1_V15', 'T1_V16', 'T1_V17', 'T2_V3', 'T2_V5', 'T2_V11', 'T2_V12',
+'T2_V13')
+fact_train = train[fact_cols]
+fact_test = test[fact_cols]
+
+#put the numerical as matrix
+num_train_data <- train[,-match(fact_cols, colnames(train))]
+num_test_data <- test[,-match(fact_cols, colnames(test))]
+
+#transform the categorical to dict
+for (ff in colnames(fact_train))
+{
+  x <- factor(fact_train[,ff])
+	x <- model.matrix(~ x - 1)[,-1, drop = F]
+	colnames(x) <- paste(ff, colnames(x), sep = "_")
+	num_train_data <- data.frame(num_train_data, x)
+	print(ff)
+}
+
+#transform the categorical to dict
+for (ff in colnames(fact_test))
+{
+	x <- factor(fact_test[,ff])
+	x <- model.matrix(~ x - 1)[,-1, drop = F]
+	colnames(x) <- paste(ff, colnames(x), sep = "_")
+	num_test_data <- data.frame(num_test_data, x)
+	print(ff)
+}
+
+#merge numerical and categorical sets
+xtrain <- num_train_data
+xtest <- num_test_data
+
+rf0 <- randomForest(x = xtrain, y = y, n.trees = 200, do.trace = T)
+pred <- predict(rf0, xtest)
+
+preds = data.frame(ids, pred)
+colnames(preds) <- c("Id","Hazard")
+write.table(preds, file = 'submit.csv', row.names = F, col.names = T, sep = ",", quote = F)
+```
+
+

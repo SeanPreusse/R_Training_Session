@@ -1,0 +1,231 @@
+---
+title: "R Session 2 - Models"
+author: "Sean Preusse"
+date: "31 October 2015"
+output: html_document
+---
+## Prep
+
+```{r}
+library(ggplot2)
+
+
+```
+
+
+
+#### Load External Dataset
+
+```{r}
+mydata <- read.table("http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv", sep=",", header=T)
+```
+
+#### Lets explore this data set a little...
+
+```{r}
+library(ggplot2)
+ggplot(mydata, aes(Sales, TV)) + geom_point() + geom_smooth() + theme_bw()
+summary(mydata)
+```
+
+```{r}
+mydata$X <- NULL
+round(cor(mydata),2)
+```
+
+```{r}
+# Lets load file
+pub <- read.delim("http://www.infoexcite.com/rdata/pubs.dat", header = TRUE, sep="\t")
+
+ggplot(pub, aes(pubs, mortality)) + geom_point() + geom_smooth() + theme_bw()
+
+plot(lm(pubs ~ mortality, data=pub))
+
+
+t.test(pub)
+t.test(mydata$TV, mydata$Radio, paired = T)
+
+
+
+```
+
+#### Small Theory on Regression
+
+- Hierarchical: Predictors are selected based on past work and in which order. 
+- Forced Entry: All predictors are forced into the model
+- Stepwise Methods: Generally frowned upon by statisticions, predictors and order are selected based on mathematical critera.
+
+```{r}
+summary(mydata)
+library(stargazer)
+stargazer(mydata, type = "text", digits=1, flip=T)
+```
+
+
+#### Visualise Data
+
+```{r}
+#Stem and Leaf Plot
+stem(mydata$TV)
+
+# Histogram
+hist(mydata$TV)
+plot(density(mydata$TV))
+
+#Boxplot
+boxplot(mydata$TV)
+
+#Scatterplot
+plot(mydata$TV, mydata$Sales)
+library(ggplot2)
+ggplot(mydata, aes(TV, Sales)) + geom_point() + geom_smooth()
+
+# Normal Probability Plot
+qqnorm(mydata$TV)
+qqline(mydata$TV)
+```
+
+#### Linear Regression
+
+```{r}
+# Simple Linear Regression
+fit <- lm(mydata$TV ~ mydata$Sales)
+
+# Show Regression Output
+summary(fit)
+
+# Plot Regression
+plot(mydata$TV, mydata$Sales)
+abline(fit)
+```
+
+## Models
+
+```{r}
+m1 <- lm(Sales ~ TV, data=mydata)
+m2 <- lm(Sales ~ TV + Radio, data=mydata)
+m3 <- lm(Sales ~ TV + Radio + Newspaper, data=mydata)
+stargazer(m1, m2, m3, type="text")
+?stargazer
+```
+
+## K-means cluster analysis
+
+#### Scale Data
+
+```{r}
+mydata <- na.omit(mydata) # listwise deletion of missing
+mydata <- scale(mydata) # standardise variables
+```
+
+```{r}
+# Determine number of clusters
+wss <- (nrow(mydata)-1)*sum(apply(mydata,2,var))
+for (i in 2:15) wss[i] <- sum(kmeans(mydata, 
+    centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+  ylab="Within groups sum of squares")
+
+
+# K-Means Cluster Analysis
+fit <- kmeans(mydata, 5) # 5 cluster solution
+# get cluster means 
+aggregate(mydata,by=list(fit$cluster),FUN=mean)
+# append cluster assignment
+mydata <- data.frame(mydata, fit$cluster)
+```
+
+#### # Ward Hierarchical Clustering
+
+```{r}
+d <- dist(mydata, method = "euclidean") # distance matrix
+fit <- hclust(d, method="ward") 
+plot(fit) # display dendogram
+groups <- cutree(fit, k=5) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters 
+rect.hclust(fit, k=5, border="red")
+```
+
+#### Ward Hierarchical Clustering with Bootstrapped p values
+
+```{r}
+library(pvclust)
+fit <- pvclust(mydata, method.hclust="ward.D2",
+   method.dist="euclidean")
+plot(fit) # dendogram with p values
+# add rectangles around groups highly supported by the data
+pvrect(fit, alpha=.95)
+```
+
+#### Model Based
+```{r}
+library(mclust)
+fit <- Mclust(mydata)
+plot(fit) # plot results 
+summary(fit) # display the best model
+```
+
+```{r}
+fit <- kmeans(mydata, 4)
+# Cluster Plot against 1st 2 principal components
+
+# vary parameters for most readable graph
+library(cluster) 
+clusplot(mydata, fit$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+# Centroid Plot against 1st 2 discriminant functions
+library(fpc)
+plotcluster(mydata, fit$cluster)
+
+fit
+summary(fit)
+```
+
+```{r}
+# comparing 2 cluster solutions
+library(fpc)
+cluster.stats(d, fit1$cluster, fit2$cluster)
+```
+
+```{r}
+
+
+```
+
+
+chisq.test(mydata$Sales)
+
+library(Rcmdr)
+install.packages("Rcmdr")
+library("Rattle"")
+
+#### Multiple Regression
+
+model1 <- lm(Sales ~ TV +Radio +Newspaper, data=mydata)
+summary(model1)
+
+#### How accurate is the model
+
+#### Assessing the regression
+
+
+
+
+
+library(Rcmdr)
+
+Test DV to multiple IVs
+
+
+
+library(ggplot2)
+model2 <- lm(Sales ~ TV, data=mydata)
+summary(model2)
+diamonds <- data.frame(diamonds)
+rm(diamonds)
+data()
+
+
+library(rattle)
+rattle()
+diamonds <- data.frame(diamonds)
