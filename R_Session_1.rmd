@@ -1,0 +1,180 @@
+---
+title: "R Session 1"
+output: html_document
+author: Sean Preusse
+theme: united
+highlight: zenburn
+---
+
+## Updates and Packages
+
+#### Update R
+
+if(!require(installr)) {install.packages("installr"); require(installr)} #load / install+load installr 
+
+updateR()
+ 
+This will start the updating process of your R installation.  It will check for newer versions, and if one is available, will guide you through the decisions you'd need to make.
+
+#### Installing Packages
+
+install.packages("packagename")
+
+Examples of high use packages;
+- ggplot2 # Data Visualisation
+- ggvis # Interactive Visualtions
+- xlsx # Load .xlsx files
+- dplyr # Data Munging
+- reshape2 # Data Munging, Melting
+- rvest # Web Scraping
+- lubridate # Dates
+- corrplot # Correlation Plots
+
+
+#### Loading Packages
+
+```{r}
+library(corrplot)
+library(ggplot2)
+library(ggvis)
+```
+
+## Creating Data
+
+#### Strings
+```{r}
+Fruit <- c("Apples", "Bananas", "Oranges")
+```
+
+#### Values
+```{r}
+Quantity = c(4, 6, 9)
+Cost <- c(.80, .60, .50)
+```
+
+#### Creating a table
+```{r}
+Shopping <- data.frame(Fruit, Quantity, Cost)
+```
+
+#### Add new calculation to table
+```{r}
+Shopping$Total.Cost <- Shopping$Quantity*Shopping$Cost
+```
+
+#### Get and Set working Directory
+
+```{r}
+getwd() 
+# setwd("/Users/sppreus")
+list.files()
+
+#### Output a file
+```{r}
+write.table(Shopping, "Shopping.csv", sep=",")
+rm(Shopping)
+```
+
+#### Loading file
+
+```{r}
+Shopping <- read.csv("Shopping.csv")
+```
+
+## Exploration
+```{r}
+Shopping
+summary(Shopping)
+# Total Shopping Cost
+sum(Shopping$Total.Cost)
+```
+
+## Real Data Set Exploration - US Facts
+
+We are using the preloaded dataset on US State Factiods
+
+Dictionary
+* Population: Estimate as of July 1975
+* illiteracy: percentage of population
+* Life Exp: Life expectancy in years
+* Murder: Murder and non-negligent manslaughter rate per 100,000 population
+* HS Grad: Percent high-school graduaates
+* Frost: mean number of days with minimum temperature below freezing
+* Area: Land area in square miles
+
+## Describe Data
+
+```{r}
+us.factoids <- data.frame(state.x77)
+str(us.factoids)
+summary(us.factoids)
+# Standard Deviation is important but missing, lets view this as well.
+round(sapply(us.factoids, sd),2)
+# Adding a Population Density
+us.factoids$Density = us.factoids$Population * 1000 / us.factoids$Area
+```
+
+## Visualise and Plot Data
+```{r}
+#Histogram
+qplot(Murder, data=us.factoids)
+qplot(Murder, data=us.factoids, binwidth = 2)
+
+#DensityPlot
+qplot(Murder, geom="density", data=us.factoids)
+
+#BoxPlot
+us.factoids$State <- as.factor(rownames(us.factoids))
+qplot(Murder, State, geom="boxplot", data=us.factoids)
+
+#Scatter Plot
+qplot(Murder, Population, geom='point', data=us.factoids, binwidth = 2)
+
+#Non-Linear Regression with degrees of freedom
+qplot(Murder, Population, geom=c("point","smooth"), data=us.factoids, binwidth = 2)
+```
+
+Using GGplot instead of qplot
+
+```{r}
+###BoxPlot
+ggplot(data = us.factoids, aes(Murder, State)) + geom_boxplot()
+
+### Lets make this easier to read
+us.factoids$State <- factor(us.factoids$State, levels = us.factoids$State[order(us.factoids$Murder)])
+ggplot(data = us.factoids, aes(Murder, State)) + geom_boxplot() + theme_bw()
+
+#Scatter Plot
+ggplot(data = us.factoids, aes(Murder, Population)) + geom_point() + geom_smooth() + theme_bw()
+```
+
+Interactive Chart Example
+
+```{r}
+us.factoids %>% ggvis(x= ~Murder) %>% layer_densities(adjust = input_slider(.1, 2, value =1, step =.1, label = "Bandwidth adjustment"))
+```
+
+## Multiple Regression example
+
+#### Corrolation Matrix Table
+
+```{r}
+us.factoids$State <- NULL
+
+us.factoids.cor <- cor(us.factoids, use="complete.obs")
+round(us.factoids.cor,2)
+```
+
+#### Pairs Scatter Plot
+
+```{r}
+pairs(us.factoids)
+```
+
+#### Corrolation Matrix Plot
+
+```{r}
+library(corrplot)
+?corrplot
+corrplot(us.factoids.cor, order="AOE", method="pie", tl.pos="lt", type="upper",tl.col="black", tl.cex=0.6, tl.srt=45, addCoef.col="black", addCoefasPercent = TRUE,p.mat = 1-abs(us.factoids.cor), sig.level=0.70, insig = "blank")
+```
