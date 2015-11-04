@@ -13,6 +13,238 @@ library(ggplot2)
 ```
 
 
+## Load Packages and Data
+
+```{r}
+library(corrplot)
+library(ggplot2)
+us.factoids <- data.frame(state.x77)
+# Adding a Population Density
+us.factoids$Density = us.factoids$Population * 1000 / us.factoids$Area
+```
+getwd()
+setwd("C:/Users/M039995/AppData/Local/GitHub")
+
+list.files()
+
+
+## Multiple Regression example
+
+#### Pairs
+
+```{r}
+pairs(us.factoids)
+```
+
+#### Corrolation Matrix Table
+
+```{r}
+us.factoids$Country <- NULL
+us.factoids.cor <- cor(us.factoids, use="complete.obs")
+round(us.factoids.cor,2)
+```
+
+#### Corrolation Matrix Plot
+
+```{r}
+corrplot(us.factoids.cor, order="AOE", method="square", tl.pos="lt", type="upper",tl.col="black", tl.cex=0.6, tl.srt=45, addCoef.col="black", addCoefasPercent = TRUE,p.mat = 1-abs(us.factoids.cor), sig.level=0.70, insig = "blank")
+```
+
+### Maximal Model, Linear additive model
+
+life expectancy is positively correlated to Income, HS.Grad and Frost. Negative corrolated to Illiteracy and Murder Lets use life expectancy as our response variable
+
+```{r}
+names(us.factoids)
+model1 <- lm(Life.Exp ~ Population + Income + Illiteracy + Murder + HS.Grad + Frost + Area + Density, data=us.factoids)
+summary(model1)
+summary.aov(model1)
+```
+
+### The Minimal Adequate Model
+
+Now we want to reduce our model to a point were all predictors are significant
+
+```{r}
+model2 <- update(model1, .~.-Area)
+summary(model2)
+```
+
+Lets compare these two models
+
+```{r}
+anova(model1, model2)
+```
+
+little effect, p value 0.4205 vs. (FIND)
+Lets remove Illiteracy, these had low scores.
+
+```{r}
+model3 <- update(model2, .~.-Illiteracy)
+summary(model3)
+anova(model1, model3)
+```
+
+
+```{r}
+model4 <- update(model3, .~.-Income)
+summary(model4)
+```
+
+
+```{r}
+model5 <- update(model4, .~.-Density)
+summary(model5)
+anova(model5, model4) 
+```
+
+
+```{r}
+model6 = update(model5, .~.-Population)
+summary(model6)
+```
+
+### Stepwise regression
+
+
+```{r}
+step(model1, direction = 'backward')
+```
+
+### Confidence Limits on the Estimated Coefficients
+
+```{r}
+confint(model6)
+```
+
+#### Prediction
+
+```{r}
+predict(model6, list(Murder=10.5, HS.Grad=48, Frost=100))
+```
+
+
+### Regression Diagnostic
+
+```{r}
+par(mfrow=c(2,2)) # visualize four graphs at once
+plot(model6)
+```
+
+
+```{r}
+par(mfrow=c(1,1)) # reset the graphics defaults
+```
+
+### Extracting Elements of the Model Object
+
+#### Extracting coefficients
+
+```{r}
+model6[[1]]
+```
+
+#### Extracting residuals
+
+Maine is performing the worst against our model, and Hawaii the best??
+```{r}
+sort(model6$resid)
+```
+
+### Beta Coeffieicent
+Beta or standardized coefficients are the slopes we would get if all the variables were on the same scale. This helps to determine the relative importantance of the predictor which neither the unstandardised coefficient or p-value does.
+
+```{r}
+model7 = lm(scale(Life.Exp) ~ scale(Murder) + scale(HS.Grad) + scale(Frost), data=us.factoids)
+summary(model7)
+```
+
+### Partial Correlation
+
+```{r}
+# No function within R, so lets create one;
+pcor = function(a,b,c)
+{
+     (cor(a,b)-cor(a,c)*cor(b,c))/sqrt((1-cor(a,c)^2)*(1-cor(b,c)^2))
+}
+# Run Function
+pcor(us.factoids$Life.Exp, us.factoids$Murder, us.factoids$HS.Grad)
+```
+The partial correlation between thesee three variables is -0.7
+
+## Making Predictions from a Model
+Lets use the air quality data set
+
+```{r}
+na.omit(airquality) -> airquality
+
+model1 <- lm(Ozone ~ Solar.R + Wind + Temp + Month, data=airquality)
+coef(model1)
+```
+
+#### Model Prediction
+
+The model has been fitted and the regression coefficients displayed. Suppose now we wish to predict for new values: Solar.R=200, Wind=11, Temp=80, Month=6.
+
+```{r}
+prediction <- c(1,200,11,80,6) * coef(model1)
+sum(prediction)
+```
+
+How accurate is 47.1?
+
+#### Prediction for mean response
+
+We can get the confidence interval, but first we need to ask is the prediction being made for the mean response or for single cases.
+
+```{r}
+predict(model1, list(Solar.R=200,Wind=11,Temp=80,Month=6), interval="conf")
+```
+
+```{r}
+# Prediction for a single new case
+predict(model1, list(Solar.R=200,Wind=11,Temp=80,Month=6), interval="pred")
+```
+
+#### Standard Tests
+
+```{r}
+# Quantile comparison plot
+qqplot(us.factoids$Population, us.factoids$Murder)
+
+# Durbin-Watson test for autocorrelated errors
+library(car)
+durbinWatsonTest(model1)
+
+# Component plus residual plots
+crPlots(model1)
+
+# Score test for nonconstant error variance
+ncvTest(model1)
+
+# Spread-level plots
+spreadLevelPlot()
+
+
+# Bonferroni outlier test
+outlierTest(model1)
+
+# Added variable plots
+avPlots(model1)
+
+# Regression influence plots
+influencePlot(model1)
+
+# Enhanced scatter plots
+scatterplot(us.factoids$Population, us.factoids$Murder)
+
+# Enhanced scatter plot matrixes
+scatterplotMatrix()
+
+# Variance inflation factors
+vif(model1)
+```
+
 
 #### Load External Dataset
 
